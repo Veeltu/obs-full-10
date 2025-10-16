@@ -269,7 +269,9 @@ receivers:
             - targets: ["json-exporter:7979"]
           metrics_path: /probe
           params:
-            target: ["http://proxy-json-exporter:5000/proxy/"]
+            target: ["http://proxy-json-exporter:5000/infra/data"]
+
+            # /infra/data
             
         - job_name: "apstra_json_proxy_services_interface"
           scrape_interval: 5m # To fix
