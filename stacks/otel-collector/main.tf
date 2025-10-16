@@ -268,7 +268,7 @@ resource "kubernetes_deployment_v1" "collector" {
           # TCP port for syslog
           port {
             container_port = 54536
-            name           = "syslog-tcp-rfc6587"
+            name           = "syslog-rfc6587"
           }
           port {
             container_port = 162
@@ -283,7 +283,7 @@ resource "kubernetes_deployment_v1" "collector" {
 
           port {
             container_port = 54526
-            name           = "syslog-tcp-rfc5424"
+            name           = "syslog-rfc5424"
           }
           # UDP port for syslog
           # port {
