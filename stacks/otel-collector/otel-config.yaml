@@ -279,7 +279,8 @@ receivers:
           metrics_path: /probe
           params:
             # target: ["http://proxy-json-exporter:5000/services/interface"]
-            target: ["http://proxy-json-exporter-2:5000/infra/systems/interface"]
+            # target: ["http://proxy-json-exporter-2:5000/infra/systems/interface"]
+            target: ["http://proxy-json-exporter:5000/infra/systems/interface"]
             module: ["apstra_services_interfaces"]
 
 
