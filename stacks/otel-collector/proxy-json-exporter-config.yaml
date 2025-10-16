@@ -10,7 +10,7 @@
 #   - /api/anomalies
 
 hosts:
-  - url: https://aadegbtgmb0001.infra.dev.pndrs.de
+  - https://aadegbtgmb0001.infra.dev.pndrs.de
 
 login_url: /api/user/login
 
