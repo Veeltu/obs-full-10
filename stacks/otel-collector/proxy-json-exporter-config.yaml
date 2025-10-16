@@ -37,9 +37,9 @@ routes:
     discovery:
       url: /api/systems
       items_path: id
-      per_item:
-        url_template: "/api/systems/{item}/services/interface"
-        transform: attach_id
+    per_item:
+      url_template: "/api/systems/{item}/services/interface"
+      transform: attach_id
 
   - name: systems_interfaces
     path: /infra/systems
