@@ -1,0 +1,197 @@
+# ============================================================
+# CONFIG EXAMPLE - DummyJSON TESTING
+# ============================================================
+# This file shows practical usage with DummyJSON for testing
+# Copy this to config.yaml and modify as needed.
+
+# ============================================================
+# HOSTS CONFIGURATION
+# ============================================================
+# DummyJSON host for testing
+hosts:
+  - https://dummyjson.com
+
+# ============================================================
+# AUTHENTICATION (OPTIONAL)
+# ============================================================
+# DummyJSON supports auth tokens for testing
+auth:
+  username_env: PROXYJSON_USERNAME
+  password_env: PROXYJSON_PASSWORD
+
+# ============================================================
+# ROUTE DEFINITIONS
+# ============================================================
+routes:
+  # ROUTE 1: Aggregation of various DummyJSON endpoints
+  - name: dashboard_data
+    path: /dashboard
+    description: "Aggregates various DummyJSON endpoints for dashboard testing"
+    upstreams:
+      - /products/1
+      - /products/2
+      - /products/3
+      - /users/1
+      - /users/2
+      - /posts/1
+      - /todos/1
+      - /quotes/1
+
+  # ROUTE 2: Discovery Pattern - All products
+  - name: all_products
+    path: /products
+    description: "Discovers and fetches all available products"
+    discovery:
+      url: /products
+      items_path: products[].id
+    per_item:
+      url_template: /products/{item}
+    transform: attach_id
+
+  # ROUTE 3: Discovery Pattern - Users with posts
+  - name: users_with_posts
+    path: /users/posts
+    description: "Discovers users and fetches their posts"
+    discovery:
+      url: /users
+      items_path: users[].id
+    per_item:
+      url_template: /users/{item}/posts
+    transform: attach_id
+
+  # ROUTE 4: Discovery Pattern - Posts with comments
+  - name: posts_with_comments
+    path: /posts/comments
+    description: "Discovers posts and fetches their comments"
+    discovery:
+      url: /posts
+      items_path: posts[].id
+    per_item:
+      url_template: /posts/{item}/comments
+    transform: attach_id
+
+  # ROUTE 5: Discovery Pattern - User carts
+  - name: user_carts
+    path: /users/carts
+    description: "Discovers users and fetches their carts"
+    discovery:
+      url: /users
+      items_path: users[].id
+    per_item:
+      url_template: /users/{item}/carts
+    transform: attach_id
+
+  # ROUTE 6: Discovery Pattern - User todos
+  - name: user_todos
+    path: /users/todos
+    description: "Discovers users and fetches their todos"
+    discovery:
+      url: /users
+      items_path: users[].id
+    per_item:
+      url_template: /users/{item}/todos
+    transform: attach_id
+
+  # ROUTE 7: Product categories aggregation
+  - name: product_categories
+    path: /products/categories
+    description: "Fetches product categories and sample products"
+    upstreams:
+      - /products/categories
+      - /products/category/smartphones
+      - /products/category/laptops
+      - /products/category/fragrances
+
+  # ROUTE 8: Quotes aggregation
+  - name: random_quotes
+    path: /quotes
+    description: "Fetches multiple random quotes"
+    upstreams:
+      - /quotes/1
+      - /quotes/2
+      - /quotes/3
+      - /quotes/4
+      - /quotes/5
+
+  # ROUTE 9: Recipes aggregation
+  - name: recipes
+    path: /recipes
+    description: "Fetches multiple recipes"
+    upstreams:
+      - /recipes/1
+      - /recipes/2
+      - /recipes/3
+      - /recipes/4
+      - /recipes/5
+
+  # ROUTE 10: Health check with DummyJSON
+  - name: health_check
+    path: /health
+    description: "Health check using DummyJSON test endpoint"
+    upstreams:
+      - /test
+      - /ip
+
+# ============================================================
+# PRACTICAL APPLICATIONS
+# ============================================================
+# 
+# 1. DASHBOARD ENDPOINT (/dashboard):
+#    - Single endpoint that aggregates data from 8 different DummyJSON endpoints
+#    - Perfect for testing dashboards
+#    - Contains products, users, posts, todos and quotes
+#
+# 2. PRODUCTS DISCOVERY (/products):
+#    - Automatically detects all available products
+#    - Fetches details for each product
+#    - Scales automatically when DummyJSON adds new products
+#
+# 3. USERS WITH POSTS (/users/posts):
+#    - Detects all users
+#    - Fetches posts for each user
+#    - Creates user-post relationships automatically
+#
+# 4. POSTS WITH COMMENTS (/posts/comments):
+#    - Detects all posts
+#    - Fetches comments for each post
+#    - Perfect for testing blog applications
+#
+# 5. USER CARTS (/users/carts):
+#    - Detects all users
+#    - Fetches carts for each user
+#    - Perfect for testing e-commerce
+#
+# 6. USER TODOS (/users/todos):
+#    - Detects all users
+#    - Fetches todos for each user
+#    - Perfect for testing task management applications
+#
+# 7. PRODUCT CATEGORIES (/products/categories):
+#    - Aggregates product categories
+#    - Fetches sample products from different categories
+#
+# 8. RANDOM QUOTES (/quotes):
+#    - Fetches random quotes
+#    - Perfect for testing motivational applications
+#
+# 9. RECIPES (/recipes):
+#    - Fetches recipes
+#    - Perfect for testing culinary applications
+#
+# 10. HEALTH CHECK (/health):
+#     - Checks DummyJSON availability
+#     - Fetches client IP information
+#
+# DummyJSON FEATURES:
+# - All endpoints return JSON
+# - Supports pagination (limit, skip)
+# - Supports delays (delay)
+# - Supports authorization (Bearer token)
+# - Perfect for testing and prototyping
+#
+# TESTING BENEFITS:
+# - Realistic JSON data
+# - Stable API
+# - No rate limiting
+# - Easy to debug
+# - Documentation available at https://dummyjson.com/docs

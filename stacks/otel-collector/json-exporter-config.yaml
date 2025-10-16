@@ -1,0 +1,166 @@
+modules:
+  default:
+    metrics:
+      - name: apstra_cluster_nodes_cpu_usage
+        type: object
+        help: ""
+        path: "{[*].data_api_cluster_nodes.items[*]}"
+        labels:
+          address: "{.address}"
+          id: "{.id}"
+          label: "{.label}"
+          state: "{.state}"
+        values:
+          idle: "{.cpu_usage.idle}"
+          system: "{.cpu_usage.system}"
+          user: "{.cpu_usage.user}"
+      - name: apstra_cluster_nodes_memory_usage
+        type: object
+        help: ""
+        path: "{[*].data_api_cluster_nodes.items[*]}"
+        labels:
+          address: "{.address}"
+          id: "{.id}"
+          label: "{.label}"
+          state: "{.state}"
+        values:
+          total: "{.memory_usage.total}"
+          used: "{.memory_usage.used}"
+      - name: apstra_cluster_nodes_disk_usage
+        type: object
+        help: ""
+        path: "{[*].data_api_cluster_nodes.items[*].disk_usage[*]}"
+        labels:
+          mode: "{.mode}"
+          name: "{.name}"
+        values:
+          total: "{.total}"
+          used: "{.used}"
+      - name: apstra_cluster_nodes_info
+        type: object
+        help: ""
+        path: "{[*].data_api_cluster_nodes.items[*]}"
+        labels:
+          address: "{.address}"
+          id: "{.id}"
+          label: "{.label}"
+          state: "{.state}"
+          capacity_score: "{.capacity_score}"
+          configuration_error: "{.configuration_error}"
+          cpu: "{.cpu}"
+          errors: "{.errors}"
+          num_containers: "{.num_containers}"
+          roles: "{.roles[*]}"
+          utilization: "{.utilization}"
+          tags: "{.tags[*]}"
+        values:
+          static_value: 1
+      - name: apstra_device-os_images
+        type: object
+        help: ""
+        path: "{[*].data_api_device-os_images.items[*]}"
+        labels:
+          checksum: "{.checksum}"
+          checksum_type: "{.checksum_type}"
+          description: "{.description}"
+          id: "{.id}"
+          image_name: "{.image_name}"
+          image_size: "{.image_size}"
+          image_url: "{.image_url}"
+          platform: "{.platform}"
+          type: "{.type}"
+        values:
+          static_value: 1
+
+      - name: apstra_features
+        type: object
+        help: ""
+        path: "{[*].data_api_features}"
+        labels:
+          enterprise: "{.enterprise.status}"
+          freeform: "{.freeform.status}"
+          full_access: "{.full_access.status}"
+          task_api: "{.task_api.status}"
+        values:
+          static_value: 1
+
+      - name: apstra_version
+        type: object
+        help: ""
+        path: "{[*].data_api_version}"
+        labels:
+          build: "{.build}"
+          hotfix: "{.hotfix}"
+          major: "{.major}"
+          minor: "{.minor}"
+          version: "{.version}"
+        values:
+          static_value: 1
+
+      - name: apstra_ztp_device
+        type: object
+        help: ""
+        path: "{[*].data_api_ztp_device.items[*]}"
+        labels:
+          ip_addr: "{.ip_addr}"
+          last_log: "{.last_log}"
+          last_updated_at: "{.last_updated_at}"
+          status: "{.status}"
+          system_id: "{.system_id}"
+          task: "{.task}"
+        values:
+          static_value: 1
+
+      - name: apstra_data_api_systems_state
+        type: object
+        help: ""
+        path: "{[*].data_api_systems.items[*]}"
+        labels:
+          hostname: "{.status.hostname}"
+          state: "{.status.state}"
+        values:
+          static_value: 1
+
+      - name: apstra_data_api_anomalies
+        type: object
+        help: ""
+        path: "{[*].data_api_anomalies}"
+        values:
+          count: "{.count}"
+
+  apstra_services_interfaces:
+    metrics:
+      - name: apstra_services_interface_status
+        type: object
+        help: "Status interface per device (no device key)"
+        path: "{ [*] }"
+        labels:
+          id: "{.id}"
+          name: "{.services.interface.name}"
+          source: "{.services.interface.source}"
+        values:
+          failure_count: "{.services.interface.status.failure_count}"
+          run_count: "{.services.interface.status.run_count}"
+          success_count: "{.services.interface.status.success_count}"
+
+      - name: apstra_services_interface_status_info
+        type: object
+        help: "Status interface fields as labels (static value)"
+        path: "{ [*] }"
+        labels:
+          id: "{.id}"
+          name: "{.services.interface.name}"
+          source: "{.services.interface.source}"
+          error_message: "{.services.interface.status.error_message}"
+          execution_time: "{.services.interface.status.execution_time}"
+          failure_count: "{.services.interface.status.failure_count}"
+          last_run_timestamp: "{.services.interface.status.last_run_timestamp}"
+          last_success_timestamp: "{.services.interface.status.last_success_timestamp}"
+          max_queue_size: "{.services.interface.status.max_queue_size}"
+          service_started: "{.services.interface.status.service_started}"
+          success_count: "{.services.interface.status.success_count}"
+          run_count: "{.services.interface.status.run_count}"
+          underrun_count: "{.services.interface.status.underrun_count}"
+          waiting_time: "{.services.interface.status.waiting_time}"
+        values:
+          static_values: 1

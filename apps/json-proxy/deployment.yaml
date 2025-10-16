@@ -1,0 +1,121 @@
+# Proxy JSON Exporter Deployment with Production-Ready Logging
+# 
+# Environment Variables for Logging:
+# - LOG_LEVEL: Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default: INFO
+# - LOG_FORMAT: Set log format (simple, detailed). Default: detailed  
+# - DEBUG: Enable Flask debug mode (true/false). Default: false
+#
+# Production Settings: LOG_LEVEL=WARNING, LOG_FORMAT=simple, DEBUG=false
+# Development Settings: LOG_LEVEL=DEBUG, LOG_FORMAT=detailed, DEBUG=true
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy-json-exporter-2
+  namespace: network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: proxy-json-exporter-2
+  template:
+    metadata:
+      labels:
+        app: proxy-json-exporter-2
+    spec:
+      containers:
+        - name: proxy-json-exporter-2
+          image: veeltu/json-proxy-ver-2.6:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PROXYJSON_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: proxy-json-exporter-credentials
+                  name: proxy-json-exporter-credentials
+                  key: username
+            - name: PROXYJSON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: proxy-json-exporter-credentials
+                  key: password
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FORMAT
+              value: "detailed"
+            - name: DEBUG
+              value: "false"
+          volumeMounts:
+            - name: proxy-config-2
+              mountPath: /config/config.yaml
+              subPath: config.yaml
+      volumes:
+        - name: proxy-config-2
+          configMap:
+            name: proxy-config-2
+---
+# Service for Proxy JSON Exporter
+# Exposes the proxy service on port 5000
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy-json-exporter-2
+  namespace: network
+spec:
+  selector:
+    app: proxy-json-exporter-2
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+---
+# Configuration for Proxy JSON Exporter
+# This ConfigMap contains the routing configuration and API endpoints
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proxy-config-2
+  namespace: network
+data:
+  config.yaml: |
+    # Upstream hosts configuration
+    hosts:
+      - https://aadegbtgmb0001.infra.dev.pndrs.de
+
+    # Authentication endpoint
+    login_url: /api/login
+
+    # Authentication configuration
+    auth:
+      username_env: PROXYJSON_USERNAME
+      password_env: PROXYJSON_PASSWORD
+
+    # API routes configuration
+    routes:
+      # Route 1: Simple aggregation of multiple endpoints
+      - name: infra_data_aggregation
+        path: /infra/data
+        description: "Aggregates various infrastructure data"
+        upstreams:
+          - /api/cluster/nodes
+          - /api/device-os/images
+          - /api/features
+          - /api/version
+          - /api/ztp/device
+          - /api/systems
+          - /api/anomalies
+
+      # Route 2: Discovery pattern example
+      - name: discovered_systems_interfaces
+        path: /infra/systems/interfaces
+        description: "Discovers systems and fetches interface details"
+        discovery:
+          url: /api/systems
+          items_path: "items[].id"
+        per_item:
+          url_template: /api/systems/{item}/services/interface
+          transform: attach_id
+
+   
+

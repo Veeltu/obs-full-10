@@ -1,0 +1,649 @@
+# Main OpenTelemetry Collector configuration file
+# This collector is deployed as a gateway/central collector
+# https://opentelemetry.io/docs/collector/deployment/gateway/
+
+receivers:
+  # Standard OpenTelemetry Protocol (OTLP) receiver
+  # Accepts telemetry data in OTLP format via gRPC and HTTP
+  otlp:
+    protocols:
+      grpc:
+        endpoint: ${env:MY_POD_IP}:4317 # Using pod IP to bind to the correct interface
+      http:
+        endpoint: ${env:MY_POD_IP}:4318 # HTTP endpoint for OTLP
+
+  # Kubernetes Cluster Receiver
+  # Collects metrics about the Kubernetes cluster itself
+  # https://opentelemetry.io/docs/kubernetes/collector/components/
+  # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/k8sclusterreceiver
+  # **IMPORTANT NOTICE**:
+  # this will have to move to its own collector as we really just want one of these running or we will duplicate the data
+  k8s_cluster:
+    auth_type: serviceAccount # Uses the service account for authentication
+    collection_interval: 10s # How often to collect metrics
+    metadata_collection_interval: 5m # How often to collect metadata
+    node_conditions_to_report: [
+        Ready,
+        DiskPressure,
+        MemoryPressure,
+        PIDPressure,
+        NetworkUnavailable,
+      ] # Node conditions to monitor
+    allocatable_types_to_report: [cpu, memory, ephemeral-storage, storage] # Resource types to monitor
+
+  # Syslog Receiver for RFC5424 format
+  # Collects syslog messages in RFC5424 format via TCP and UDP
+  # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/syslogreceiver/README.md
+  syslog/rfc6587:
+    tcp:
+      listen_address: ${env:MY_POD_IP}:54526
+      preserve_leading_whitespaces: true
+      preserve_trailing_whitespaces: true
+    protocol: rfc5424 
+    enable_octet_counting: true
+    allow_skip_pri_header: false
+    location: "Europe/Warsaw"
+
+  syslog/rfc5424:
+    tcp:
+      listen_address: ${env:MY_POD_IP}:54536
+      preserve_leading_whitespaces: true
+      preserve_trailing_whitespaces: true
+    protocol: rfc5424
+    enable_octet_counting: false
+    allow_skip_pri_header: false
+    location: "Europe/Warsaw"
+
+  # Prometheus Receiver for VyOS network devices
+  # Collects metrics from VyOS routers via SNMP
+  # https://confluence.bare.pandrosion.org/pages/viewpage.action?pageId=190612318#POCSyslogMessagingforObservability-ObservabilityMeasures
+  # debug commands:
+  # k port-forward svc/prom-snmp-exporter 9116:9116
+  # curl 'http://localhost:9116/snmp?module=hrSystem&module=system&module=if_mib&target=er-2613e3531e2348a087063887378c2a0f.default-doe.stable.pndrs.de&auth=vyos'
+  # curl 'http://localhost:9116/snmp?module=vyos_system&target=er-2613e3531e2348a087063887378c2a0f.default-doe.stable.pndrs.de&auth=vyos'
+
+  # snmp/traps:
+  #   endpoint: ${env:MY_POD_IP}:162
+  #   transport: udp
+  #   version: 3
+  #   security_level: authPriv
+  #   user: obs
+  #   auth_type: SHA
+  #   auth_password: ${env:SNMP_AUTH_PASSWORD}
+  #   priv_type: AES
+  #   priv_password: ${env:SNMP_PRIVACY_PASSWORD}
+
+  udplog/snmptrap:
+    listen_address: ${env:MY_POD_IP}:162
+    encoding: utf-8
+    add_attributes: true
+    attributes:
+      source: "snmptrap"
+
+  prometheus/vyos:
+    config:
+      scrape_configs:
+        # FRR (Free Range Routing) metrics from VyOS routers
+        - job_name: frr_exporter
+          static_configs:
+            - targets: # Same list of VyOS routers
+                - er-2613e3531e2348a087063887378c2a0f.default-doe.stable.pndrs.de
+                - er-2516c83242e043ea93c56fc04589075f.doe.stable.pndrs.de
+                - er-39a82c2460804a0c99868ce5ca779300.zerocarbon-1.stable.pndrs.de
+          metrics_path: /metrics # Standard Prometheus metrics path
+          relabel_configs:
+            # 1. add port 9342 to targets (FRR exporter port)
+            - source_labels: [__address__]
+              regex: (.*) # target all
+              replacement: $1:9342 # add port
+              target_label: __address__ # replace address
+
+            # 2. set instance without port for better labeling
+            - source_labels: [__address__] # get address with port
+              regex: (.*):9342 # match address with port
+              target_label: instance # set instance
+              replacement: $1 # replace with address without port
+
+        # Blackbox exporter metrics for connectivity tests
+        - job_name: blackbox_exporter
+          static_configs:
+            - targets: # Same list of VyOS routers
+                - er-2613e3531e2348a087063887378c2a0f.default-doe.stable.pndrs.de
+                - er-2516c83242e043ea93c56fc04589075f.doe.stable.pndrs.de
+                - er-39a82c2460804a0c99868ce5ca779300.zerocarbon-1.stable.pndrs.de
+          metrics_path: /metrics # Standard Prometheus metrics path
+          relabel_configs:
+            # 1. add port 9115 to targets (Blackbox exporter port)
+            - source_labels: [__address__]
+              regex: (.*) # target all
+              replacement: $1:9115 # add port
+              target_label: __address__ # replace address
+
+            # 2. set instance without port for better labeling
+            - source_labels: [__address__] # get address with port
+              regex: (.*):9115 # match address with port
+              target_label: instance # set instance
+              replacement: $1 # replace with address without port
+
+        # Node exporter metrics for system-level metrics
+        - job_name: node_exporter
+          static_configs:
+            - targets: # Same list of VyOS routers
+                - er-2613e3531e2348a087063887378c2a0f.default-doe.stable.pndrs.de
+                - er-2516c83242e043ea93c56fc04589075f.doe.stable.pndrs.de
+                - er-39a82c2460804a0c99868ce5ca779300.zerocarbon-1.stable.pndrs.de
+          metrics_path: /metrics # Standard Prometheus metrics path
+          relabel_configs:
+            # 1. add port 9481 to targets (Node exporter port)
+            - source_labels: [__address__]
+              regex: (.*) # target all
+              replacement: $1:9481 # add port
+              target_label: __address__ # replace address
+
+            # 2. set instance without port for better labeling
+            - source_labels: [__address__] # get address with port
+              regex: (.*):9481 # match address with port
+              target_label: instance # set instance
+              replacement: $1 # replace with address without port
+
+  prometheus/vyos_snmp:
+    config:
+      scrape_configs:
+        # Global exporter-level metrics from the SNMP exporter itself
+        - job_name: snmp_exporter
+          static_configs:
+            - targets: ["prom-snmp-exporter:9116"]
+
+        # SNMP metrics from VyOS routers
+        - job_name: vyos_snmp_p1
+          static_configs:
+            - targets: # List of VyOS routers to monitor
+                - er-2613e3531e2348a087063887378c2a0f.default-doe.stable.pndrs.de
+          metrics_path: /snmp # Path for SNMP metrics
+          params:
+            auth:
+              - vyos # Authentication parameter
+            module:
+              # SNMPv2-MIB - Basic system information
+              # https://mibbrowser.online/mibdb_search.php?mib=SNMPv2-MIB
+              # https://github.com/prometheus/snmp_exporter/blob/16185db0f330e5e6eadf8cd83741cde80320edfe/snmp.yml#L42025
+              - system
+
+              # IF-MIB - Network interface metrics
+              # https://mibbrowser.online/mibdb_search.php?mib=IF-MIB
+              # https://github.com/prometheus/snmp_exporter/blob/16185db0f330e5e6eadf8cd83741cde80320edfe/snmp.yml#L22378
+              - if_mib
+
+              # HOST-RESOURCES-MIB - System resource metrics
+              # https://mibbrowser.online/mibdb_search.php?mib=HOST-RESOURCES-MIB
+              # https://github.com/prometheus/snmp_exporter/blob/16185db0f330e5e6eadf8cd83741cde80320edfe/snmp.yml#L22342
+              - hrSystem # System metrics
+              - hrSWRunPerf # Software performance
+              - hrStorage # Storage metrics
+              - hrSWRun # Running software
+
+              # UCD System Stats
+              # https://mibbrowser.online/mibdb_search.php?mib=UCD-SNMP-MIB
+              # https://github.com/prometheus/snmp_exporter/blob/16185db0f330e5e6eadf8cd83741cde80320edfe/snmp.yml#L44975C3-L44975C19
+              - ucd_memory
+
+              # UCD System Stats
+              # https://mibbrowser.online/mibdb_search.php?mib=UCD-SNMP-MIB
+              # https://github.com/prometheus/snmp_exporter/blob/16185db0f330e5e6eadf8cd83741cde80320edfe/snmp.yml#L44975C3-L44975C19
+              - ucd_system_stats
+              - vyos_ip
+              # - ip_mib
+              # - cisco_fc_fe
+
+          # Relabeling to properly set up SNMP targets
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target # Set target parameter for SNMP
+            - source_labels: [__param_target]
+              target_label: instance # Set instance label
+            - target_label: __address__
+              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+ # SNMP metrics from VyOS routers
+        - job_name: vyos_snmp_p2
+          static_configs:
+            - targets: # List of VyOS routers to monitor
+                - er-2516c83242e043ea93c56fc04589075f.doe.stable.pndrs.de
+          metrics_path: /snmp # Path for SNMP metrics
+          params:
+            auth:
+              - vyos # Authentication parameter
+            module:
+              - system
+              - if_mib
+              - hrSystem # System metrics
+              - hrSWRunPerf # Software performance
+              - hrStorage # Storage metrics
+              - hrSWRun # Running software
+              - ucd_memory
+              - ucd_system_stats
+              - vyos_ip
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target # Set target parameter for SNMP
+            - source_labels: [__param_target]
+              target_label: instance # Set instance label
+            - target_label: __address__
+              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+ # SNMP metrics from VyOS routers
+        - job_name: vyos_snmp_p3
+          static_configs:
+            - targets: # List of VyOS routers to monitor
+                - er-39a82c2460804a0c99868ce5ca779300.zerocarbon-1.stable.pndrs.de
+          metrics_path: /snmp # Path for SNMP metrics
+          params:
+            auth:
+              - vyos # Authentication parameter
+            module:
+              - system
+              - if_mib
+              - hrSystem # System metrics
+              - hrSWRunPerf # Software performance
+              - hrStorage # Storage metrics
+              - hrSWRun # Running software
+              - ucd_memory
+              - ucd_system_stats
+              - vyos_ip
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target # Set target parameter for SNMP
+            - source_labels: [__param_target]
+              target_label: instance # Set instance label
+            - target_label: __address__
+              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+
+  prometheus/juniper:
+    config:
+      scrape_configs:
+        - job_name: "apstra_json_proxy"
+          scrape_interval: 5m # To fix
+          scrape_timeout: 30s # To fix
+          static_configs:
+            - targets: ["json-exporter:7979"]
+          metrics_path: /probe
+          params:
+            target: ["http://proxy-json-exporter:5000/proxy/"]
+            
+        - job_name: "apstra_json_proxy_services_interface"
+          scrape_interval: 5m # To fix
+          scrape_timeout: 30s # To fix
+          static_configs:
+            - targets: ["json-exporter:7979"]
+          metrics_path: /probe
+          params:
+            # target: ["http://proxy-json-exporter:5000/services/interface"]
+            target: ["http://proxy-json-exporter-2:5000/infra/systems/interface"]
+            module: ["apstra_services_interfaces"]
+
+
+  prometheus/juniper_snmp:
+    config:
+      scrape_configs:
+        - job_name: snmp_juniper_p1
+          scrape_interval: 1m
+          scrape_timeout: 60s
+          static_configs:
+            - targets: # List of ACIs to monitor
+                - jldegbtgmb0111.infra.dev.pndrs.de
+                - jldegbtgmb0112.infra.dev.pndrs.de
+                - jldegbtgmb0113.infra.dev.pndrs.de
+                - jldegbtgmb0114.infra.dev.pndrs.de
+                - jldegbtgmb0115.infra.dev.pndrs.de
+          metrics_path: /snmp # Path for SNMP metrics
+          params:
+            auth:
+              - juniper # Authentication parameter
+            module:
+              - system
+              - juniper
+              - juniper_optics
+              - juniper_apstra_chassis
+              - juniper_apstra_psu_power
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target # Set target parameter for SNMP
+            - source_labels: [__param_target]
+              target_label: instance # Set instance label
+            - target_label: __address__
+              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+        - job_name: snmp_juniper_p2
+          scrape_interval: 1m
+          scrape_timeout: 60s
+          static_configs:
+            - targets: # List of ACIs to monitor
+                - jldegbtgmb0116.infra.dev.pndrs.de
+                - jldegbtgmb0117.infra.dev.pndrs.de
+                - jldegbtgmb0118.infra.dev.pndrs.de
+                - jsdegbtgmb0101.infra.dev.pndrs.de
+                - jsdegbtgmb0102.infra.dev.pndrs.de
+          metrics_path: /snmp # Path for SNMP metrics
+          params:
+            auth:
+              - juniper # Authentication parameter
+            module:
+              - system
+              - juniper
+              - juniper_optics
+              - juniper_apstra_chassis
+              - juniper_apstra_psu_power
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target # Set target parameter for SNMP
+            - source_labels: [__param_target]
+              target_label: instance # Set instance label
+            - target_label: __address__
+              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+        - job_name: snmp_juniper_interfaces_p1
+          scrape_interval: 1m
+          scrape_timeout: 60s
+          static_configs:
+            - targets: # List of ACIs to monitor
+                - jldegbtgmb0111.infra.dev.pndrs.de
+                - jldegbtgmb0112.infra.dev.pndrs.de
+                - jldegbtgmb0113.infra.dev.pndrs.de
+                - jldegbtgmb0114.infra.dev.pndrs.de
+                - jldegbtgmb0115.infra.dev.pndrs.de
+          metrics_path: /snmp # Path for SNMP metrics
+          params:
+            auth:
+              - juniper # Authentication parameter
+            module:
+              - juniper_apstra_ifDescr
+              - juniper_apstra_ifOperStatus
+              - juniper_apstra_ifInOctet
+              - juniper_apstra_ifOutOctets
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target # Set target parameter for SNMP
+            - source_labels: [__param_target]
+              target_label: instance # Set instance label
+            - target_label: __address__
+              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+        - job_name: snmp_juniper_interfaces_p2
+          scrape_interval: 1m
+          scrape_timeout: 60s
+          static_configs:
+            - targets: # List of ACIs to monitor
+                - jldegbtgmb0116.infra.dev.pndrs.de
+                - jldegbtgmb0117.infra.dev.pndrs.de
+                - jldegbtgmb0118.infra.dev.pndrs.de
+                - jsdegbtgmb0101.infra.dev.pndrs.de
+                - jsdegbtgmb0102.infra.dev.pndrs.de
+          metrics_path: /snmp # Path for SNMP metrics
+          params:
+            auth:
+              - juniper # Authentication parameter
+            module:
+              - juniper_apstra_ifDescr
+              - juniper_apstra_ifOperStatus
+              - juniper_apstra_ifInOctet
+              - juniper_apstra_ifOutOctets
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target # Set target parameter for SNMP
+            - source_labels: [__param_target]
+              target_label: instance # Set instance label
+            - target_label: __address__
+              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+  prometheus/aci:
+    config:
+      scrape_configs:
+        - job_name: "aci" #APIC
+          scrape_interval: 1m
+          scrape_timeout: 30s
+          metrics_path: /probe
+          params:
+            queries:
+              - health,fabric_node_info,object_count,max_capacity,aci_up,bgp_peers,node_active_scale_profile,bgb_peers_af,node_cpu,node_memory,vlans,static_binding_info,epg_port_vlan_binding,ps_power_usgage,fabric_node_info,node_active_scale_profile,l3out_info,vrf_info
+
+          http_sd_configs:
+            # discovery all fabrics
+            # To discover an individual fabric use - url: "http://localhost:9643/sd?target=<fabric>"
+            - url: "http://aci-exporter:9643/sd"
+              refresh_interval: 5m
+
+          relabel_configs:
+            - source_labels: [__meta_role]
+              # Only include the aci_exporter_fabric __meta_role
+              regex: "aci_exporter_fabric"
+              action: "keep"
+
+            - source_labels: [__address__]
+              target_label: __param_target
+            - source_labels: [__param_target]
+              target_label: instance
+            - target_label: __address__
+              replacement: aci-exporter:9643
+
+          # Job for ACI nodes based on discovery
+        - job_name: "aci_nodes"
+          scrape_interval: 1m
+          scrape_timeout: 30s
+          metrics_path: /probe
+          params:
+            # OBS make sure to specify queries that only works for nodes AND have correct label regex for node based response
+            queries:
+              - interface_info
+
+          http_sd_configs:
+            # discovery all fabrics
+            # To discover an individual fabric use - url: "http://localhost:9643/sd?target=<fabric>"
+            - url: "http://aci-exporter:9643/sd"
+              refresh_interval: 5m
+
+          relabel_configs:
+            - source_labels: [__meta_role]
+              # Only include the spine and leaf __meta_role
+              regex: "(spine|leaf)"
+              action: "keep"
+
+            # Get the target param from __address__ that is <fabric>#<oobMgmtAddr> by default
+            - source_labels: [__address__]
+              separator: "#"
+              regex: (.*)#(.*)
+              replacement: $1
+              target_label: __param_target
+
+            # # Get the node param from __address__ that is <fabric>#<oobMgmtAddr> by default
+            # - source_labels: [ __address__ ]
+            #   separator: "#"
+            #   regex: (.*)#(.*)
+            #   replacement: $$2
+            #   target_label: __param_node
+
+            # Set instance to the ip/hostname from the __param_node
+            - source_labels: [__param_node]
+              target_label: instance
+
+            # Add labels from discovery
+            - source_labels: [__meta_fabricDomain]
+              target_label: aci
+            - source_labels: [__meta_id]
+              target_label: nodeid
+            - source_labels: [__meta_podId]
+              target_label: podid
+            - source_labels: [__meta_role]
+              target_label: role
+            - source_labels: [__meta_name]
+              target_label: name
+
+            - target_label: __address__
+              replacement: aci-exporter:9643
+
+  prometheus/aci_snmp:
+    config:
+      scrape_configs:
+        - job_name: snmp_aci
+          # scrape_timeout: 5s
+          static_configs:
+            - targets: # List of ACIs to monitor
+                - 100.126.112.6
+                - 100.126.112.7
+                - 100.126.112.10
+                - 100.126.112.11
+                - 100.126.112.12
+                - 100.126.112.13
+                - 100.126.112.14
+                - 100.126.112.15
+                - 100.126.112.16
+          metrics_path: /snmp # Path for SNMP metrics
+          params:
+            auth:
+              - vyos # Authentication parameter
+            module:
+              - system
+              - if_mib
+              - cisco_aci
+              # - cisco_device
+              # - cisco_fc_fe
+          # Relabeling to properly set up SNMP targets
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target # Set target parameter for SNMP
+            - source_labels: [__param_target]
+              target_label: instance # Set instance label
+            - target_label: __address__
+              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+processors:
+  # Set service_name from hostname
+  # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor#transformflattenlogs
+  resource/set-service-name:
+    attributes:
+      - action: insert
+        key: service.name
+        value: network
+
+  transform/copy-hostname:
+    log_statements:
+      - context: log
+        statements:
+          - set(resource.attributes["hostname"], attributes["hostname"])
+          - set(resource.attributes["appname"], attributes["appname"])
+
+  # Batch processor to combine data points for more efficient export
+  batch:
+    send_batch_max_size: 10000
+    timeout: 8s
+  # Memory limiter to prevent OOM issues
+  memory_limiter:
+    limit_mib: 6500 # Memory limit in MiB
+    spike_limit_mib: 1000 # Spike limit in MiB
+    check_interval: 5s # How often to check memory usage
+
+extensions:
+
+exporters:
+  # Kafka exporters for different telemetry types
+  # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/kafkaexporter/README.md
+  kafka/traces: # Kafka exporter for traces
+    brokers: # Kafka broker addresses
+      - otel-kafka-bootstrap.kafka-cluster:9094
+    protocol_version: 3.9.0 # Kafka protocol version
+    topic: poc-otel-network-traces # Kafka topic for traces
+    #encoding: otlp_json  # readable for debugging, default is pb (protobuf)
+    auth: # Authentication for Kafka
+      sasl:
+        username: ${env:KAFKA_USERNAME} # Username from environment variable
+        password: ${env:KAFKA_PASSWORD} # Password from environment variable
+        mechanism: SCRAM-SHA-512 # Authentication mechanism
+        version: 1 # SASL version
+
+  kafka/metrics: # Kafka exporter for metrics
+    brokers:
+      - otel-kafka-bootstrap.kafka-cluster:9094
+    protocol_version: 3.9.0
+    topic: poc-otel-network-metrics # Kafka topic for metrics
+    #encoding: otlp_json  # readable for debugging, default is pb
+    auth:
+      sasl:
+        username: ${env:KAFKA_USERNAME}
+        password: ${env:KAFKA_PASSWORD}
+        mechanism: SCRAM-SHA-512
+        version: 1
+    # Extend limit
+    sending_queue:
+      queue_size: 512
+    producer:
+      max_message_bytes: 1000000
+
+  kafka/logs: # Kafka exporter for logs
+    brokers:
+      - otel-kafka-bootstrap.kafka-cluster:9094
+    protocol_version: 3.9.0
+    topic: poc-otel-network-logs # Kafka topic for logs
+    #encoding: otlp_json  # readable for debugging, default is pb
+    auth:
+      sasl:
+        username: ${env:KAFKA_USERNAME}
+        password: ${env:KAFKA_PASSWORD}
+        mechanism: SCRAM-SHA-512
+        version: 1
+
+  # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md
+  debug:
+    verbosity: basic # basic/detailed
+
+service:
+  # extensions: [zpages]
+  pipelines:
+    metrics/k8s_cluster:
+      receivers: [k8s_cluster]
+      exporters: [kafka/metrics]
+
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [kafka/traces, debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [kafka/logs, debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [kafka/metrics]
+
+    logs/syslog:
+      receivers: [syslog/rfc6587, syslog/rfc5424]
+      processors:
+        [
+          memory_limiter,
+          batch,
+          resource/set-service-name,
+          transform/copy-hostname,
+        ]
+      exporters: [kafka/logs, debug]
+
+    metrics/vyos:
+      receivers: [prometheus/vyos, prometheus/vyos_snmp]
+      processors: [memory_limiter, batch]
+      exporters: [kafka/metrics]
+
+    metrics/juniper:
+      receivers: [prometheus/juniper, prometheus/juniper_snmp]
+      processors: [memory_limiter, batch]
+      exporters: [kafka/metrics]
+
+    metrics/aci:
+      receivers: [prometheus/aci, prometheus/aci_snmp]
+      processors: [memory_limiter, batch]
+      exporters: [kafka/metrics]
+
+    logs/snmptrap:
+      receivers: [udplog/snmptrap]
+      processors: [memory_limiter, batch]
+      exporters: [kafka/logs]

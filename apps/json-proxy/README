@@ -1,0 +1,165 @@
+# Config-Driven Proxy v2.0
+
+**Dynamic API Endpoint Builder** - A Flask service that automatically creates API routes from YAML configuration. No coding required - just configure your endpoints in YAML!
+
+## 🎯 What This Does
+
+This proxy reads your `config.yaml` file and **dynamically builds API endpoints** based on your configuration. Each route you define in the config becomes a real, working API endpoint that your proxy serves.
+
+**Example:** Define this in `config.yaml`:
+```yaml
+routes:
+  - name: dashboard_data
+    path: /dashboard
+    upstreams:
+      - /products/1
+      - /users/1
+      - /posts/1
+```
+
+**Result:** Your proxy automatically creates a `/dashboard` endpoint that aggregates data from all three upstream APIs!
+
+## 🚀 Quick Start
+
+1. **Define your endpoints** in `config.yaml` (see examples below)
+2. **Set** environment variables for authentication  
+3. **Run** with Docker or directly
+
+```bash
+docker run -d -p 5000:5000 \
+  -e PROXYJSON_USERNAME=user \
+  -e PROXYJSON_PASSWORD=pass \
+  config-driven-proxy
+```
+
+## ⚙️ How Endpoint Configuration Works
+
+### 1. Simple Aggregation Endpoints
+**Build endpoints that combine multiple API calls:**
+
+```yaml
+hosts:
+  - https://api.example.com
+
+routes:
+  - name: dashboard_data
+    path: /dashboard                    # ← This becomes your new endpoint!
+    description: "Combines data from multiple APIs"
+    upstreams:                         # ← Proxy calls all these APIs
+      - /products/1
+      - /products/2  
+      - /users/1
+      - /posts/1
+```
+
+**What happens:** Your proxy creates `/dashboard` endpoint that fetches from all 4 upstream APIs and returns combined JSON.
+
+### 2. Smart Discovery Endpoints  
+**Build endpoints that automatically discover and fetch data:**
+
+```yaml
+routes:
+  - name: all_products
+    path: /products                    # ← This becomes your new endpoint!
+    discovery:
+      url: /api/products               # ← First: get list of products
+      items_path: products[].id        # ← Extract product IDs
+    per_item:
+      url_template: /api/products/{item}  # ← Then: fetch each product
+```
+
+**What happens:** 
+1. Proxy calls `/api/products` to get list
+2. Extracts all product IDs from response
+3. Calls `/api/products/1`, `/api/products/2`, etc. for each ID
+4. Returns combined data from `/products` endpoint
+
+### 3. Authentication Setup
+```yaml
+auth:
+  username_env: PROXYJSON_USERNAME
+  password_env: PROXYJSON_PASSWORD
+```
+
+## 🔧 Environment Variables
+
+```bash
+PROXYJSON_USERNAME=your_username
+PROXYJSON_PASSWORD=your_password
+LOG_LEVEL=INFO          # DEBUG, INFO, WARNING, ERROR
+LOG_FORMAT=detailed     # simple, detailed
+```
+
+## 📡 Built-in Endpoints
+
+- `GET /health` - Service health check
+- `GET /config` - Shows all configured endpoints (safe view)
+
+## 🐳 Docker build
+
+```bash
+# Build
+docker build -t config-driven-proxy .
+
+# Run with your config
+docker run -d -p 5000:5000 \
+  -v $(pwd)/config.yaml:/config/config.yaml \
+  -e PROXYJSON_USERNAME=user \
+  -e PROXYJSON_PASSWORD=pass \
+  config-driven-proxy
+```
+
+## 🚀 Key Features
+
+- **🎯 Zero Hardcoded Routes** - Every endpoint defined in YAML config
+- **🔍 Dynamic Discovery** - Auto-detect items, then fetch details for each
+- **🔄 Flexible Aggregation** - Combine multiple API responses into one endpoint  
+- **⚡ Production Ready** - Health checks, logging, error handling
+- **🛠️ Easy Extension** - Add new endpoints without touching code
+
+## 🎯 Real-World Use Cases
+
+### API Aggregation
+```yaml
+# Create /dashboard endpoint that combines:
+routes:
+  - name: dashboard
+    path: /dashboard
+    upstreams:
+      - /api/users/stats
+      - /api/sales/today  
+      - /api/inventory/status
+```
+
+### Device Management
+```yaml
+# Auto-discover all devices and fetch their interfaces:
+routes:
+  - name: device_interfaces  
+    path: /devices/interfaces
+    discovery:
+      url: /api/devices
+      items_path: devices[].id
+    per_item:
+      url_template: /api/devices/{item}/interfaces
+```
+
+### Monitoring Dashboards
+```yaml
+# Combine metrics from multiple sources:
+routes:
+  - name: system_metrics
+    path: /metrics/system
+    upstreams:
+      - /api/cpu/usage
+      - /api/memory/usage
+      - /api/disk/usage
+      - /api/network/stats
+```
+
+## 💡 Pro Tips
+
+- **Multiple Hosts**: Configure multiple hosts for load balancing
+- **Error Handling**: Proxy gracefully handles API failures
+- **Logging**: Full request/response logging for debugging
+- **Hot Reload**: Restart container to pick up config changes

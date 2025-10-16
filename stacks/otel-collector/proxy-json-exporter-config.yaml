@@ -1,0 +1,48 @@
+# host: https://aadegbtgmb0001.infra.dev.pndrs.de
+# login_url: /api/user/login
+# data_urls:
+#   - /api/cluster/nodes
+#   - /api/device-os/images
+#   - /api/features
+#   - /api/version
+#   - /api/ztp/device
+#   - /api/systems
+#   - /api/anomalies
+
+hosts:
+  - url: https://aadegbtgmb0001.infra.dev.pndrs.de
+
+login_url: /api/user/login
+
+auth:
+  username_env: PROXYJSON_USERNAME
+  password_env: PROXYJSON_PASSWORD
+
+routes:
+  - name: infra_data_aggregation
+    path: /infra/data
+    description: "Aggregates various infrastructure data"
+    upstreams:
+      - /api/cluster/nodes
+      - /api/device-os/images
+      - /api/features
+      - /api/version
+      - /api/ztp/device
+      - /api/systems
+      - /api/anomalies
+
+  - name: discovered_systems_interfaces
+    path: /infra/systems/interfaces
+    description: "Discovers systems and fetches interface details"
+    discovery:
+      url: /api/systems
+      items_path: id
+      per_item:
+        url_template: "/api/systems/{item}/services/interface"
+        transform: attach_id
+
+  - name: systems_interfaces
+    path: /infra/systems
+    description: "Discovers systems and fetches interface details"
+    upstreams:
+      - /api/systems
