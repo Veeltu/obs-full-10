@@ -136,6 +136,8 @@ resource "kubernetes_service_v1" "collector" {
 # Deployment for the OpenTelemetry Collector
 # Runs the collector as a centralized deployment (not as a DaemonSet)
 resource "kubernetes_deployment_v1" "collector" {
+  depends_on = [kubernetes_manifest.certs]
+
   metadata {
     name      = "otel-collector"
     namespace = kubernetes_namespace.network.metadata[0].name
@@ -351,6 +353,7 @@ resource "kubernetes_deployment_v1" "collector" {
                 for_each = local.certs
                 content {
                   name = replace(secret.value, ".", "-")
+                  optional = true
                   items {
                     key  = "tls.crt"
                     path = "${replace(secret.value, ".", "-")}.crt"

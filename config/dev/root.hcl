@@ -15,6 +15,7 @@ locals {
 
   config_path = "~/.kube/config"
   config_context = "pndrs-observability"
+  # config_context = "rancher-desktop"
   # config_context = "gke_smanke-dev-test-5mkmp_europe-west3_autopilot-cluster-1"
 }
 
