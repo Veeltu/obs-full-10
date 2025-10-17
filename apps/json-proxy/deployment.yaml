@@ -98,13 +98,13 @@ data:
         path: /infra/data
         description: "Aggregates various infrastructure data"
         upstreams:
-          - /api/cluster/nodes
-          - /api/device-os/images
-          - /api/features
-          - /api/version
-          - /api/ztp/device
-          - /api/systems
-          - /api/anomalies
+          - /api/cluster/nodes      # data_api_nodes
+          - /api/device-os/images   # data_api_images
+          - /api/features           # data_api_features
+          - /api/version            # data_api_version
+          - /api/ztp/device         # data_api_device
+          - /api/systems            # data_api_system
+          - /api/anomalies          # data_api_anomalies
 
       # Route 2: Discovery pattern example
       - name: discovered_systems_interfaces

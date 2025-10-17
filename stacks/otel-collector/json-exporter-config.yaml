@@ -4,7 +4,7 @@ modules:
       - name: apstra_cluster_nodes_cpu_usage
         type: object
         help: ""
-        path: "{[*].data_api_cluster_nodes.items[*]}"
+        path: "{[*].data_api_nodes.items[*]}"
         labels:
           address: "{.address}"
           id: "{.id}"
@@ -17,7 +17,7 @@ modules:
       - name: apstra_cluster_nodes_memory_usage
         type: object
         help: ""
-        path: "{[*].data_api_cluster_nodes.items[*]}"
+        path: "{[*].data_api_nodes.items[*]}"
         labels:
           address: "{.address}"
           id: "{.id}"
@@ -29,7 +29,7 @@ modules:
       - name: apstra_cluster_nodes_disk_usage
         type: object
         help: ""
-        path: "{[*].data_api_cluster_nodes.items[*].disk_usage[*]}"
+        path: "{[*].data_api_nodes.items[*].disk_usage[*]}"
         labels:
           mode: "{.mode}"
           name: "{.name}"
@@ -39,7 +39,7 @@ modules:
       - name: apstra_cluster_nodes_info
         type: object
         help: ""
-        path: "{[*].data_api_cluster_nodes.items[*]}"
+        path: "{[*].data_api_nodes.items[*]}"
         labels:
           address: "{.address}"
           id: "{.id}"
@@ -58,7 +58,7 @@ modules:
       - name: apstra_device-os_images
         type: object
         help: ""
-        path: "{[*].data_api_device-os_images.items[*]}"
+        path: "{[*].data_api_images.items[*]}"
         labels:
           checksum: "{.checksum}"
           checksum_type: "{.checksum_type}"
@@ -100,7 +100,7 @@ modules:
       - name: apstra_ztp_device
         type: object
         help: ""
-        path: "{[*].data_api_ztp_device.items[*]}"
+        path: "{[*].data_api_device.items[*]}"
         labels:
           ip_addr: "{.ip_addr}"
           last_log: "{.last_log}"

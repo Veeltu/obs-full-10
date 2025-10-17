@@ -24,10 +24,10 @@ routes:
     description: "Aggregates various infrastructure data"
     upstreams:
       - /api/cluster/nodes
-      - /api/device-os/images
+      - /api/device-os/images # ??
       - /api/features
       - /api/version
-      - /api/ztp/device
+      - /api/ztp/device # ??
       - /api/systems
       - /api/anomalies
 
