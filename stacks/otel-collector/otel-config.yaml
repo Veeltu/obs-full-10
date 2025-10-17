@@ -289,7 +289,7 @@ receivers:
   prometheus/juniper_snmp:
     config:
       scrape_configs:
-        - job_name: snmp_juniper_p1
+        - job_name: snmp_juniper
           scrape_interval: 1m
           scrape_timeout: 60s
           static_configs:
@@ -299,29 +299,6 @@ receivers:
                 - jldegbtgmb0113.infra.dev.pndrs.de
                 - jldegbtgmb0114.infra.dev.pndrs.de
                 - jldegbtgmb0115.infra.dev.pndrs.de
-          metrics_path: /snmp # Path for SNMP metrics
-          params:
-            auth:
-              - juniper # Authentication parameter
-            module:
-              - system
-              - juniper
-              - juniper_optics
-              - juniper_apstra_chassis
-              - juniper_apstra_psu_power
-          relabel_configs:
-            - source_labels: [__address__]
-              target_label: __param_target # Set target parameter for SNMP
-            - source_labels: [__param_target]
-              target_label: instance # Set instance label
-            - target_label: __address__
-              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
-
-        - job_name: snmp_juniper_p2
-          scrape_interval: 1m
-          scrape_timeout: 60s
-          static_configs:
-            - targets: # List of ACIs to monitor
                 - jldegbtgmb0116.infra.dev.pndrs.de
                 - jldegbtgmb0117.infra.dev.pndrs.de
                 - jldegbtgmb0118.infra.dev.pndrs.de
@@ -345,7 +322,35 @@ receivers:
             - target_label: __address__
               replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
 
-        - job_name: snmp_juniper_interfaces_p1
+        # - job_name: snmp_juniper_p2
+        #   scrape_interval: 1m
+        #   scrape_timeout: 60s
+        #   static_configs:
+        #     - targets: # List of ACIs to monitor
+        #         - jldegbtgmb0116.infra.dev.pndrs.de
+        #         - jldegbtgmb0117.infra.dev.pndrs.de
+        #         - jldegbtgmb0118.infra.dev.pndrs.de
+        #         - jsdegbtgmb0101.infra.dev.pndrs.de
+        #         - jsdegbtgmb0102.infra.dev.pndrs.de
+        #   metrics_path: /snmp # Path for SNMP metrics
+        #   params:
+        #     auth:
+        #       - juniper # Authentication parameter
+        #     module:
+        #       - system
+        #       - juniper
+        #       - juniper_optics
+        #       - juniper_apstra_chassis
+        #       - juniper_apstra_psu_power
+        #   relabel_configs:
+        #     - source_labels: [__address__]
+        #       target_label: __param_target # Set target parameter for SNMP
+        #     - source_labels: [__param_target]
+        #       target_label: instance # Set instance label
+        #     - target_label: __address__
+        #       replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+        - job_name: snmp_juniper_interfaces
           scrape_interval: 1m
           scrape_timeout: 60s
           static_configs:
@@ -355,28 +360,6 @@ receivers:
                 - jldegbtgmb0113.infra.dev.pndrs.de
                 - jldegbtgmb0114.infra.dev.pndrs.de
                 - jldegbtgmb0115.infra.dev.pndrs.de
-          metrics_path: /snmp # Path for SNMP metrics
-          params:
-            auth:
-              - juniper # Authentication parameter
-            module:
-              - juniper_apstra_ifDescr
-              - juniper_apstra_ifOperStatus
-              - juniper_apstra_ifInOctet
-              - juniper_apstra_ifOutOctets
-          relabel_configs:
-            - source_labels: [__address__]
-              target_label: __param_target # Set target parameter for SNMP
-            - source_labels: [__param_target]
-              target_label: instance # Set instance label
-            - target_label: __address__
-              replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
-
-        - job_name: snmp_juniper_interfaces_p2
-          scrape_interval: 1m
-          scrape_timeout: 60s
-          static_configs:
-            - targets: # List of ACIs to monitor
                 - jldegbtgmb0116.infra.dev.pndrs.de
                 - jldegbtgmb0117.infra.dev.pndrs.de
                 - jldegbtgmb0118.infra.dev.pndrs.de
@@ -398,6 +381,33 @@ receivers:
               target_label: instance # Set instance label
             - target_label: __address__
               replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
+
+        # - job_name: snmp_juniper_interfaces_p2
+        #   scrape_interval: 1m
+        #   scrape_timeout: 60s
+        #   static_configs:
+        #     - targets: # List of ACIs to monitor
+        #         - jldegbtgmb0116.infra.dev.pndrs.de
+        #         - jldegbtgmb0117.infra.dev.pndrs.de
+        #         - jldegbtgmb0118.infra.dev.pndrs.de
+        #         - jsdegbtgmb0101.infra.dev.pndrs.de
+        #         - jsdegbtgmb0102.infra.dev.pndrs.de
+        #   metrics_path: /snmp # Path for SNMP metrics
+        #   params:
+        #     auth:
+        #       - juniper # Authentication parameter
+        #     module:
+        #       - juniper_apstra_ifDescr
+        #       - juniper_apstra_ifOperStatus
+        #       - juniper_apstra_ifInOctet
+        #       - juniper_apstra_ifOutOctets
+        #   relabel_configs:
+        #     - source_labels: [__address__]
+        #       target_label: __param_target # Set target parameter for SNMP
+        #     - source_labels: [__param_target]
+        #       target_label: instance # Set instance label
+        #     - target_label: __address__
+        #       replacement: prom-snmp-exporter:9116 # The SNMP exporter's real hostname:port
 
   prometheus/aci:
     config:
