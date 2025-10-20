@@ -417,8 +417,27 @@ receivers:
           scrape_timeout: 30s
           metrics_path: /probe
           params:
+            # queries:
+            #   - health,fabric_node_info,object_count,max_capacity,aci_up,bgp_peers,node_active_scale_profile,bgb_peers_af,node_cpu,node_memory,vlans,static_binding_info,epg_port_vlan_binding,ps_power_usgage,fabric_node_info,node_active_scale_profile,l3out_info,vrf_info
             queries:
-              - health,fabric_node_info,object_count,max_capacity,aci_up,bgp_peers,node_active_scale_profile,bgb_peers_af,node_cpu,node_memory,vlans,static_binding_info,epg_port_vlan_binding,ps_power_usgage,fabric_node_info,node_active_scale_profile,l3out_info,vrf_info
+              - health
+              - fabric_node_info
+              - object_count
+              - max_capacity
+              # - aci_up
+              # - bgp_peers
+              # - node_active_scale_profile
+              # - bgb_peers_af
+              # - node_cpu
+              # - node_memory
+              # - vlans
+              # - static_binding_info
+              # - epg_port_vlan_binding
+              # - ps_power_usgage
+              # - fabric_node_info
+              # - node_active_scale_profile
+              # - l3out_info
+              # - vrf_info
 
           http_sd_configs:
             # discovery all fabrics

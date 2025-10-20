@@ -33,7 +33,6 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: proxy-json-exporter-credentials
-                  name: proxy-json-exporter-credentials
                   key: username
             - name: PROXYJSON_PASSWORD
               valueFrom:

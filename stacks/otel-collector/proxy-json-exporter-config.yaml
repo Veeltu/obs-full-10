@@ -1,14 +1,3 @@
-# host: https://aadegbtgmb0001.infra.dev.pndrs.de
-# login_url: /api/user/login
-# data_urls:
-#   - /api/cluster/nodes
-#   - /api/device-os/images
-#   - /api/features
-#   - /api/version
-#   - /api/ztp/device
-#   - /api/systems
-#   - /api/anomalies
-
 hosts:
   - https://aadegbtgmb0001.infra.dev.pndrs.de
 
